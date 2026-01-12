@@ -1,4 +1,4 @@
-const {cacheManager,fixedQueue} = require('./utils.js');
+import {cacheManager,fixedRing} from './utils.js';
 
 const TIMESTAMP_EXPIRE_MS = Number(process.env.TIMESTAMP_EXPIRE_MS) || 180 * 24 * 3600 * 1000; //排行榜总数据过期时间
 const CACHE_EXPIRE_MS = Number(process.env.CACHE_EXPIRE_MS) || 300 * 1000; // 排行榜cache过期时间
@@ -6,8 +6,8 @@ const leaderboardTimeInterval = [12 * 3600 * 1000,24 * 3600 * 1000, 7 * 24 * 360
 
 let redis=undefined;
 let leaderBoardCache={
-    expireTime=0,
-    caches=[]
+    expireTime:0,
+    caches:[]
 }
 let bucketCache=undefined;
 async function getLeaderBoardFromTime(periodMs = 24 * 3600 * 1000, limit = 30) {
@@ -34,12 +34,12 @@ function getLeaderBoardFromBucketIndex(inde,limit = 30){
         maps[index+1]=new Map();
         let Rank_Xmin=Math.pow(limit/(bucketCache.maplist[index+1].size() || 1),(-1/1.1)); //幂率猜测 从需要的比例反向推算(\frac{X}{X_{min}})
         let cacheSize=Math.round(limit/Rank_Xmin) || 1;
-        bucketCache.maplist[index+1].forEach((value,key) {
+        bucketCache.maplist[index+1].forEach((value,key) => {
             if(!maps[index+1].has(value)){
                 maps[index+1].set(value,new fixedRing(cacheSize));
             }
             maps[index+1].get(value).push(key);
-        }
+        });
         maps[index+1].keys().forEach((value) => {maps[index+1].set(value,maps[index+1].get(value).ring)});
     }
     maps[0]=new Map();
@@ -48,7 +48,6 @@ function getLeaderBoardFromBucketIndex(inde,limit = 30){
                 maps[0].set(value,[]);
             }
             maps[0].get(value).push(key);
-        }
     });
     let result={};
     maps.forEach((map)=>{map.forEach((value,key)=>{
@@ -88,7 +87,7 @@ async function initLeaderboardManager(paraRedis){
     bucketCache=new cacheManager(redis,leaderboardTimeInterval);
     await bucketCache.init();
 }
-module.exports={
+export{
     initLeaderboardManager,
     getLeaderBoard
 }

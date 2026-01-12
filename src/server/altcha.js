@@ -1,4 +1,4 @@
-const { createChallenge, verifySolution } = require('altcha-lib');
+import  { createChallenge, verifySolution } from 'altcha-lib';
 // Altcha 配置
 const ALTCHA_HMAC_KEY = process.env.ALTCHA_HMAC_KEY || 'bili-qml-default-hmac-key-change-in-production';
 const ALTCHA_COMPLEXITY = Number(process.env.ALTCHA_COMPLEXITY) || 50000; // PoW 难度
@@ -10,7 +10,7 @@ const RATE_LIMIT_LEADERBOARD_WINDOW = Number(process.env.RATE_LIMIT_LEADERBOARD_
 
 let redis=null;
 
-function initAlcha(paraRedis,app){
+function initAltcha(paraRedis,app){
     redis=paraRedis;
     app.get(['/api/altcha/challenge', '/altcha/challenge'], async (req, res) => {
     try {
@@ -57,7 +57,7 @@ async function resetRateLimit(key) {
     await redis.del(key);
 }
 
-module.exports={
+export{
     altchaCheck,
-    initAlcha
+    initAltcha
 }

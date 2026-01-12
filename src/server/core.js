@@ -1,5 +1,5 @@
-const { initAltcha , altchaCheck } = require('./altcha.js');
-const {getLeaderBoard,initLeaderboardManager} = require('./utils.js');
+import { initAltcha , altchaCheck } from'./altcha.js';
+import {getLeaderBoard,initLeaderboardManager} from './leaderboard.js';
 
 async function fetchTitle(list){
     return Promise.all(list.map(async (item, index) => {
@@ -25,7 +25,7 @@ async function fetchTitle(list){
     }));
 }
 
-initCoreApi(redis,app){
+function initCoreApi(redis,app){
 
     initAltcha(redis,app);
     initLeaderboardManager(redis);
@@ -125,6 +125,6 @@ initCoreApi(redis,app){
         }
     });
 }
-module.exports ={
+export {
     initCoreApi
 }

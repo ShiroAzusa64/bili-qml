@@ -1,9 +1,9 @@
-const express = require('express');
-const cors = require('cors');
-const bodyParser = require('body-parser');
-const { Redis } = require('ioredis');
+import  express from 'express';
+import  cors from 'cors';
+import  bodyParser from 'body-parser';
+import  { Redis } from 'ioredis';
 
-const initCoreApi = require('./core.js');
+import  {initCoreApi} from './core.js';
 
 const app = express();
 

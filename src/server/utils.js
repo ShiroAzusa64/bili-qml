@@ -63,8 +63,8 @@ class cacheManager{
 class fixedRing{
     ring=undefined;
     pointer=0;
-    constructor(length){
-        let length=1 << Math.round(Math.log2(length));
+    constructor(leng){
+        let length=1 << Math.round(Math.log2(leng));
         this.ring=[...Array(length)];
         this.bitmask=length-1;
     }
@@ -74,7 +74,7 @@ class fixedRing{
     }
 }
 
-module.exports={
+export {
     cacheManager,
     fixedRing
 }
