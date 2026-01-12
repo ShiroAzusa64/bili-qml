@@ -3,7 +3,7 @@ import  cors from 'cors';
 import  bodyParser from 'body-parser';
 import  { Redis } from 'ioredis';
 
-import  {initCoreApi} from './core.js';
+import  {initCoreApi} from './core.mjs';
 
 const app = express();
 

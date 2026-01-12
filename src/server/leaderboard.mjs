@@ -1,4 +1,4 @@
-import {cacheManager,fixedRing} from './utils.js';
+import {cacheManager,fixedRing} from './utils.mjs';
 
 const TIMESTAMP_EXPIRE_MS = Number(process.env.TIMESTAMP_EXPIRE_MS) || 180 * 24 * 3600 * 1000; //排行榜总数据过期时间
 const CACHE_EXPIRE_MS = Number(process.env.CACHE_EXPIRE_MS) || 300 * 1000; // 排行榜cache过期时间
@@ -32,9 +32,9 @@ function getLeaderBoardFromBucketIndex(inde,limit = 30){
     let maps=[];
     for(let index=inde-2;index>=0;index--){
         maps[index+1]=new Map();
-        let Rank_Xmin=Math.pow(limit/(bucketCache.maplist[index+1].size() || 1),(-1/1.1)); //幂率猜测 从需要的比例反向推算(\frac{X}{X_{min}})
+        let Rank_Xmin=Math.pow(limit/(bucketCache.mapList[index+1].size() || 1),(-1/1.1)); //幂率猜测 从需要的比例反向推算(\frac{X}{X_{min}})
         let cacheSize=Math.round(limit/Rank_Xmin) || 1;
-        bucketCache.maplist[index+1].forEach((value,key) => {
+        bucketCache.mapList[index+1].forEach((value,key) => {
             if(!maps[index+1].has(value)){
                 maps[index+1].set(value,new fixedRing(cacheSize));
             }
@@ -43,7 +43,7 @@ function getLeaderBoardFromBucketIndex(inde,limit = 30){
         maps[index+1].keys().forEach((value) => {maps[index+1].set(value,maps[index+1].get(value).ring)});
     }
     maps[0]=new Map();
-    bucketCache.maplist[0].forEach((value,key)=>{
+    bucketCache.mapList[0].forEach((value,key)=>{
         if(!maps[0].has(value)){
                 maps[0].set(value,[]);
             }

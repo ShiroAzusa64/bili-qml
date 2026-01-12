@@ -1,4 +1,4 @@
-import { initAltcha , altchaCheck } from'./altcha.js';
+import { initAltcha , altchaCheck } from'./altcha.mjs';
 import {getLeaderBoard,initLeaderboardManager} from './leaderboard.js';
 
 async function fetchTitle(list){
