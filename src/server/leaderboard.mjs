@@ -28,31 +28,41 @@ async function getLeaderBoardFromTime(periodMs = 24 * 3600 * 1000, limit = 30) {
     return sorted;
 }
 
-function getLeaderBoardFromBucketIndex(inde,limit = 30){
+function getLeaderBoardFromBucketIndex(inde,limit = 30,guessMax = NaN){
+    function inInverseCDF(p){ //# 前p的概率对应排名下限
+        return Math.pow(p, 1/-0.76); //幂率猜测 从需要的比例反向推算(\frac{X}{X_{min}}) 20260113 月榜测得PDF幂常数 -1.76
+    }
+    function CDF(n){
+        return Math.pow(n,-0.76);
+    }
     let maps=[];
     for(let index=inde-2;index>=0;index--){
         maps[index+1]=new Map();
-        let Rank_Xmin=Math.pow(limit/(bucketCache.mapList[index+1].size() || 1),(-1/1.1)); //幂率猜测 从需要的比例反向推算(\frac{X}{X_{min}})
-        let cacheSize=Math.round(limit/Rank_Xmin) || 1;
-        bucketCache.mapList[index+1].forEach((value,key) => {
-            if(!maps[index+1].has(value)){
-                maps[index+1].set(value,new fixedRing(cacheSize));
+        let CDFMax=inInverseCDF(1/(bucketCache.mapList[index+1].size)); //仿射CDF的最大值
+        let ratio=guessMax/CDFMax; //与猜测的比例
+        let guessRank=inInverseCDF(limit/(bucketCache.mapList[index+1].size);
+        let deltaRank=1/ratio; //线性变换 实际差值->CDF仿射空间 相差1
+        let range=CDF(guessRank)-CDF(guessRank+deltaRank); //猜测的第limit个视频需要的数量的比例
+        let cacheSize=Math.ceil(bucketCache.mapList[index+1].size*range) || limit; //若没有传入guessMax则默认limit
+        bucketCache.mapList[index+1].forEach((count,bvid) => {
+            if(!maps[index+1].has(count)){
+                maps[index+1].set(count,new fixedRing(cacheSize)); //点赞量->bv
             }
-            maps[index+1].get(value).push(key);
+            maps[index+1].get(count).push(bvid);
         });
         maps[index+1].keys().forEach((value) => {maps[index+1].set(value,maps[index+1].get(value).ring)});
     }
     maps[0]=new Map();
-    bucketCache.mapList[0].forEach((value,key)=>{
-        if(!maps[0].has(value)){
-                maps[0].set(value,[]);
+    bucketCache.mapList[0].forEach((count,bvid)=>{
+        if(!maps[0].has(count)){
+                maps[0].set(count,[]);
             }
-            maps[0].get(value).push(key);
+            maps[0].get(count).push(bvid); //点赞量->bv
     });
     let result={};
-    maps.forEach((map)=>{map.forEach((value,key)=>{
-        value.forEach((bvid)=>{
-            result[bvid]=(result[bvid] || 0) + key;
+    maps.forEach((map)=>{map.forEach((bvidList,count)=>{
+        bvidList.forEach((bvid)=>{
+            result[bvid]=(result[bvid] || 0) + Number(count); // bv->点赞量
         })
     })});
     const sorted = Object.entries(result)
