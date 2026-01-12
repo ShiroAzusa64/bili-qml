@@ -1,5 +1,5 @@
 import { initAltcha , altchaCheck } from'./altcha.mjs';
-import {getLeaderBoard,initLeaderboardManager} from './leaderboard.js';
+import {getLeaderBoard,initLeaderboardManager} from './leaderboard.mjs';
 
 async function fetchTitle(list){
     return Promise.all(list.map(async (item, index) => {
