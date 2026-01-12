@@ -65,7 +65,7 @@ function getLeaderBoardFromBucketIndex(inde,limit = 30){
 async function getLeaderBoard(range) {
     switch (range) { //滑动窗口榜单 以UNIX时间戳计算
         case "realtime":
-            return await getLeaderBoardFromTime(12 * 3600 * 1000); //实时榜单 过去12小时
+            return await getLeaderBoardFromBucketIndex(0); //实时榜单 过去12小时
         case "daily":
             return leaderBoardCache.caches[0];
         case "weekly":
@@ -78,7 +78,7 @@ async function getLeaderBoard(range) {
 async function updateLeaderBoardCache() {
     leaderBoardCache.expireTime = Date.now() + CACHE_EXPIRE_MS;
     await cacheManager.update();
-    leaderBoardCache.caches = await Promise.all([0,1,2,3].map((time) => {
+    leaderBoardCache.caches = await Promise.all([1,2,3].map((time) => {
         return getLeaderBoardFromBucketIndex(time);
     }));
     console.log('Leaderboard cache updated.');
