@@ -6,7 +6,6 @@ class fakeMap{
 }
 class cacheManager{
     mapList=[]; //external access
-    coldVoteDeleteThreshold=[]; //external access
     baseTime=0;
     lastUpdate=0;
     timeSlice=0;
@@ -14,7 +13,7 @@ class cacheManager{
         this.redis= redis;
         this.timeBucketIndex= [0, ...timeBucketIndex];
         this.cacheCount=this.timeBucketIndex.length;
-        this.mapList=[...Array(this.cacheCount-1).keys()].map((index)=>{this.coldVoteDeleteThreshold[index]=0;return new Map();});
+        this.mapList=[...Array(this.cacheCount-1).keys()].map((index)=>{return new Map();});
         this.fakemap=new fakeMap;
     }
     async fetchRange(index,slice = this.timeSlice){
@@ -53,12 +52,29 @@ class cacheManager{
             }
         });
     }
-    expireVotes(index){
+    expireVotes(index,threshold){
         this.mapList[index].forEach((value,key)=>{
-            if(!value || (value<this.coldVoteDeleteThreshold[index] && !(this.mapList[index-1] || this.fakemap).get(key))){
+            if(!value || (value<threshold && !(this.mapList[index-1] || this.fakemap).get(key))){
                 this.mapList[index].delete(key);
             }
         });
     }
 }
-module.exports=cacheManager;
+class fixedRing{
+    ring=undefined;
+    pointer=0;
+    constructor(length){
+        let length=1 << Math.round(Math.log2(length));
+        this.ring=[...Array(length)];
+        this.bitmask=length-1;
+    }
+    push(obj){
+        this.ring[this.pointer]=obj;
+        this.pointer=(this.pointer+1) & this.bitmask;
+    }
+}
+
+module.exports={
+    cacheManager,
+    fixedRing
+}

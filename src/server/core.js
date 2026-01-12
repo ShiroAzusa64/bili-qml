@@ -1,57 +1,35 @@
-const { initAlcha , altchaCheck } = require('./altcha.js');
+const { initAltcha , altchaCheck } = require('./altcha.js');
+const {getLeaderBoard,initLeaderboardManager} = require('./utils.js');
 
-const TIMESTAMP_EXPIRE_MS = Number(process.env.TIMESTAMP_EXPIRE_MS) || 180 * 24 * 3600 * 1000; //排行榜总数据过期时间
-const CACHE_EXPIRE_MS = Number(process.env.CACHE_EXPIRE_MS) || 300 * 1000; // 排行榜cache过期时间
-const leaderboardTimeInterval = [12 * 3600 * 1000,24 * 3600 * 1000, 7 * 24 * 3600 * 1000, 30 * 24 * 3600 * 1000]; //排行榜相差时间
-
-let leaderBoardCache={
-    expireTime=0,
-    caches=[]
-}
-
-async function getLeaderBoardFromTime(periodMs = 24 * 3600 * 1000, limit = 30) {
-    const now = Date.now();
-    const minTime = now - periodMs;
-    const counts = {};
-    const [_, recentVotes] = await Promise.all([
-        redis.zremrangebyscore('votes:recent', '-inf', now - TIMESTAMP_EXPIRE_MS - 1),
-        redis.zrangebyscore('votes:recent', minTime, now)
-    ]);
-    for (const member of recentVotes) {
-        const bvid = member.split(':')[0];  // 从 `${bvid}:${userId}` 提取
-        counts[bvid] = (counts[bvid] || 0) + 1;
-    }
-    const sorted = Object.entries(counts)
-        .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
-        .slice(0, limit);
-    return sorted;
-}
-
-async function getLeaderBoard(range) {
-    switch (range) { //滑动窗口榜单 以UNIX时间戳计算
-        case "realtime":
-            return await getLeaderBoardFromTime(12 * 3600 * 1000); //实时榜单 过去12小时
-        case "daily":
-            return leaderBoardCache.caches[0];
-        case "weekly":
-            return leaderBoardCache.caches[1];
-        case "monthly":
-            return leaderBoardCache.caches[2];
-    }
-}
-
-async function updateLeaderBoardCache() {
-    leaderBoardCache.expireTime = Date.now() + CACHE_EXPIRE_MS;
-    leaderBoardCache.caches = await Promise.all(leaderboardTimeInterval.map((time) => {
-        return getLeaderBoardFromTime(time);
+async function fetchTitle(list){
+    return Promise.all(list.map(async (item, index) => {
+        try {
+            const conn = await fetch(`https://api.bilibili.com/x/web-interface/view?bvid=${item.bvid}`,
+                {
+                headers: {
+                    "Origin": "https://www.bilibili.com",
+                    "Referer": `https://www.bilibili.com/video/${item.bvid}/`,
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3',
+                    }
+                });
+            const json = await conn.json();
+            if (json.code === 0 && json.data?.title) {
+                list[index].title = json.data.title;
+            } else {
+                list[index].title = '未知标题';
+            }
+        } catch (err) {
+            console.error(`获取标题失败 ${item.bvid}:`, err);
+            list[index].title = '加载失败';
+        }
     }));
-    console.log('Leaderboard cache updated.');
 }
 
 initCoreApi(redis,app){
-    // EdgeOne Pages不支持定时任务自动刷新，提供手动刷新接口，由外部定时任务调用
-    initAlcha(redis,app);
 
+    initAltcha(redis,app);
+    initLeaderboardManager(redis);
+    // EdgeOne Pages不支持定时任务自动刷新，提供手动刷新接口，由外部定时任务调用
     app.use(["/api/refresh", "/refresh"], async (req, res) => {
         const authHeader = req.headers["authorization"];
         const token = authHeader && authHeader.split(" ")[1];
@@ -139,27 +117,7 @@ initCoreApi(redis,app){
             let list = board.map((array) => { return { bvid: array[0], count: array[1] } });
             // no type or type != 2: add backward capability
             if (!proc_type || proc_type !== 2) {
-                await Promise.all(list.map(async (item, index) => {
-                    try {
-                        const conn = await fetch(`https://api.bilibili.com/x/web-interface/view?bvid=${item.bvid}`,
-                            {
-                                headers: {
-                                    "Origin": "https://www.bilibili.com",
-                                    "Referer": `https://www.bilibili.com/video/${item.bvid}/`,
-                                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3',
-                                }
-                            });
-                        const json = await conn.json();
-                        if (json.code === 0 && json.data?.title) {
-                            list[index].title = json.data.title;
-                        } else {
-                            list[index].title = '未知标题';
-                        }
-                    } catch (err) {
-                        console.error(`获取标题失败 ${item.bvid}:`, err);
-                        list[index].title = '加载失败';
-                    }
-                }));
+                await fetchTitle(list);
             }
             res.json({ success: true, list: list });
         } catch (error) {
