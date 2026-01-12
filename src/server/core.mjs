@@ -1,4 +1,4 @@
-import { initAltcha , altchaCheck } from'./altcha.mjs';
+import { initAltcha , altchaCheck } from './altcha.mjs';
 import {getLeaderBoard,initLeaderboardManager} from './leaderboard.mjs';
 
 async function fetchTitle(list){
@@ -52,7 +52,7 @@ function initCoreApi(redis,app){
             const { bvid, userId, altcha } = req.body;
             if (!bvid || !userId) return res.status(400).json({ success: false, error: 'Missing params' });
             const rateLimitKey = `ratelimit:vote:${userId}`;
-            await altchaCheck(altcha,rateLimitKey);
+            await altchaCheck(altcha,rateLimitKey,res);
             const voted = await redis.sadd(`voted:${bvid}`, userId); // 3. 用户投票记录
             if (voted === 0) return res.status(400).json({ success: false, error: 'Already Voted' });
             const now = Date.now(); // 排行榜时间戳记录
@@ -72,7 +72,7 @@ function initCoreApi(redis,app){
             const { bvid, userId, altcha } = req.body;
             if (!bvid || !userId) return res.status(400).json({ success: false, error: 'Missing params' });
             const rateLimitKey = `ratelimit:vote:${userId}`;
-            await altchaCheck(altcha,rateLimitKey)
+            await altchaCheck(altcha,rateLimitKey,res)
             const isMember = await redis.sismember(`voted:${bvid}`, userId);
             if (!isMember) return res.status(400).json({ error: 'Not voted yet' });
             await Promise.all([

@@ -35,7 +35,7 @@ async function checkRateLimit(key, maxRequests, windowSeconds) {
     return current > maxRequests;
 }
 
-async function altchaCheck(altcha,rateLimitKey){
+async function altchaCheck(altcha,rateLimitKey,res){
 
     const isRateLimited = await checkRateLimit(rateLimitKey, RATE_LIMIT_VOTE_MAX, RATE_LIMIT_VOTE_WINDOW);
 
